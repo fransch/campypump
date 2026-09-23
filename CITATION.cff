@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+title: "campypump: classify RE-cmeABC efflux pump alleles in Campylobacter genomes"
+message: "If you use this software, please cite it."
+type: software
+authors:
+  - family-names: Schiaffino
+    given-names: Francesca
+    affiliation: "Universidad Peruana Cayetano Heredia, Lima, Peru"
+  - family-names: Parker
+    given-names: Craig T.
+    affiliation: "University of Arizona, Tucson, AZ, USA"
+  - family-names: Cooper
+    given-names: Kerry K.
+    affiliation: "University of Arizona, Tucson, AZ, USA"
+  - family-names: Pascoe
+    given-names: Ben
+    affiliation: "University of Oxford, Oxford, UK"
+  - family-names: Kosek
+    given-names: Margaret N.
+    affiliation: "University of Virginia, Charlottesville, VA, USA"
+repository-code: "https://github.com/fransch/campypump"
+license: MIT
+version: 0.2.0
+keywords:
+  - Campylobacter
+  - antimicrobial resistance
+  - efflux pump
+  - cmeABC
+  - genomics

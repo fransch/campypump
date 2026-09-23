@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+# analysis outputs, never committed
+genomes/
+results/
+tree/
+species_refs/
+*.tsv.cache.jsonl
+*.treefile
+*.aln.fasta

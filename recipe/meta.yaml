@@ -1,0 +1,42 @@
+# Draft bioconda recipe. Before submitting: push a tagged release (v0.1.0) to GitHub,
+# fill in the URL and sha256 of the release tarball, then open a PR to bioconda-recipes.
+{% set name = "campypump" %}
+{% set version = "0.2.0" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/fransch/campypump/archive/refs/tags/v{{ version }}.tar.gz
+  sha256: <SHA256_OF_TARBALL>
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv
+  entry_points:
+    - campypump = campypump.cli:main
+  run_exports:
+    - {{ pin_subpackage(name, max_pin="x.x") }}
+
+requirements:
+  host:
+    - python >=3.9
+    - pip
+    - setuptools >=64
+  run:
+    - python >=3.9
+    - biopython >=1.80
+    - blast >=2.10
+
+test:
+  commands:
+    - campypump --version
+    - campypump run --help
+
+about:
+  home: https://github.com/fransch/campypump
+  license: MIT
+  license_file: LICENSE
+  summary: Classify RE-cmeABC vs wildtype cmeABC efflux pump alleles in Campylobacter genomes

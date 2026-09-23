@@ -1,0 +1,12 @@
+name: campypump
+channels: [conda-forge, bioconda]
+dependencies:
+  - python>=3.9
+  - biopython>=1.80
+  - blast>=2.10
+  - pandas
+  - openpyxl
+  - pytest
+  - pip
+  - pip:
+      - -e .
