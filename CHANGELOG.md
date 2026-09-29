@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2
+
+- **README expanded** into a full front page: installation with optional dependencies, a quick
+  start, how the method works, every command with its options, the output columns with a worked
+  example, how to read the flags, the optional ANI and phylogeny workflows, and troubleshooting.
+
 ## 0.2.1
 
 - **`docs/hpc_quickstart.md`:** install, run, read the results and the optional extras (PubMLST

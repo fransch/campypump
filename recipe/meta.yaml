@@ -1,7 +1,7 @@
 # Draft bioconda recipe. Before submitting: push a tagged release (v0.1.0) to GitHub,
 # fill in the URL and sha256 of the release tarball, then open a PR to bioconda-recipes.
 {% set name = "campypump" %}
-{% set version = "0.2.1" %}
+{% set version = "0.2.2" %}
 
 package:
   name: {{ name }}
