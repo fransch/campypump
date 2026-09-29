@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- **`docs/hpc_quickstart.md`:** install, run, read the results and the optional extras (PubMLST
+  download, ANI species check, allele phylogeny) for someone bringing their own genomes to a
+  cluster.
+- The Slurm templates in `hpc/` are now genuinely generic: they type a folder of assemblies rather
+  than referring to one dataset's isolate id lists, and no longer assume a particular site.
+
 ## 0.2.0
 
 - **Repository layout for public release:** the tool is separated from the dataset it was developed

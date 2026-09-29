@@ -1,33 +1,30 @@
 #!/bin/bash --login
 # ---------------------------------------------------------------------------
-# Get MLST (ST, clonal complex) + provenance for all Peru isolates from PubMLST,
-# including private records (uses the BIGSdb_downloader token in ~/.bigsdb_tokens),
-# then merge with the campypump results into one analysis-ready CSV.
-# Submit with:   sbatch metadata_job.slurm
-# Resumable: if it stops, submit again and it continues where it left off.
+# Retrieve PubMLST metadata (ST, clonal complex, provenance) and merge it into the results.
+# Only relevant when the genomes come from PubMLST and you have their isolate ids.
 # ---------------------------------------------------------------------------
 #SBATCH --job-name=pubmlst_meta
-#SBATCH --account=YOUR_GROUP                  # <-- EDIT (run: va)
+#SBATCH --account=YOUR_ACCOUNT          # <-- EDIT
 #SBATCH --partition=standard
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --time=06:00:00
 #SBATCH --output=metadata_%j.log
 
-PROJECT=/xdisk/YOUR_PI_NETID/YOUR_NETID/campypump_project   # <-- EDIT
+PROJECT=/path/to/your/project           # <-- EDIT
+IDS="$PROJECT/ids.txt"                  # <-- EDIT
+TOKENS="$HOME/.bigsdb_tokens"           # only needed for records that are not publicly released
 
-cd "$PROJECT" || { echo "Project folder not found: $PROJECT"; exit 1; }
-module load micromamba
-micromamba activate campypump
-mkdir -p results
+cd "$PROJECT" || exit 1
+module load micromamba 2>/dev/null || true
+micromamba activate campypump 2>/dev/null || conda activate campypump 2>/dev/null || true
 
-echo "Step 1: MLST + provenance from PubMLST  $(date)"
-campypump metadata --ids peru_ccoli_ids.txt peru_cjejuni_ids.txt \
-    --token-dir ~/.bigsdb_tokens -o results/pubmlst_metadata.tsv
+campypump metadata --ids "$IDS" ${TOKENS:+--token-dir "$TOKENS"} \
+    -o results/pubmlst_metadata.tsv
 
-echo "Step 2: merging with campypump results  $(date)"
-campypump annotate results/campypump_all_peru.tsv \
+# species_ani.tsv (skani) and exclude_ids.txt are used only if present
+campypump annotate results/campypump_results.tsv \
     --metadata results/pubmlst_metadata.tsv \
-    -o results/campypump_all_peru_annotated.csv
-
-echo "Finished  $(date)"
+    $([ -s species_ani.tsv ] && echo "--ani species_ani.tsv") \
+    $([ -s exclude_ids.txt ] && echo "--exclude exclude_ids.txt") \
+    -o results/campypump_annotated.csv

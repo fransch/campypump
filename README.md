@@ -36,6 +36,8 @@ pip install .
 bash verify_install.sh        # tests + the 8 bundled reference genomes, with expected values
 ```
 
+On a cluster, follow `docs/hpc_quickstart.md`.
+
 ## What it does
 
 1. **Finds** cmeR, cmeA, cmeB and cmeC in each assembly with sensitive BLAST settings, and extracts
@@ -110,7 +112,8 @@ reported, and they agreed on every genome in the validation set.
 | `docs/technical_description.md` | the method in full, with code, parameters, validation and known limitations |
 | `docs/codebook_annotated_csv.md` | every column of the analysis CSV |
 | `docs/tree_howto.md` | building and drawing a cmeB allele tree |
-| `hpc/*.slurm` | Slurm templates for a cluster |
+| `docs/hpc_quickstart.md` | **start here for a cluster:** install, run, read the results, optional extras |
+| `hpc/*.slurm` | Slurm job templates (typing, PubMLST download, metadata) |
 
 ## Colours
 
