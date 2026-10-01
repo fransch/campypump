@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- **Species names are read from any reference file named for its organism**, not only the handful
+  that were hardcoded: `Clanienae_NCTC13004.fasta` now gives "C. lanienae" rather than the file
+  stem. Add a reference genome for any *Campylobacter* species and ANI will name it correctly.
+
 ## 0.2.2
 
 - **README expanded** into a full front page: installation with optional dependencies, a quick

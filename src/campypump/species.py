@@ -35,13 +35,22 @@ _SPECIES_PATTERNS = [
 ]
 
 
+# a reference named for its organism but not in the list above, e.g. Clanienae_NCTC13004.fasta
+# or C.hepaticus_HV10.fna -> "C. lanienae", "C. hepaticus"
+_GENERIC = re.compile(r"^C\.?_?([a-z]{4,})(?:[_.-]|$)")
+
+
 def species_from_reference(ref_file: str, ref_name: str = "") -> str:
     """Work out the species from the reference file name, falling back to its FASTA header."""
-    for text in (os.path.basename(ref_file), ref_name):
+    base = os.path.basename(ref_file)
+    for text in (base, ref_name):
         for pattern, species in _SPECIES_PATTERNS:
             if pattern.search(text or ""):
                 return species
-    return os.path.splitext(os.path.basename(ref_file))[0]
+    m = _GENERIC.match(base)
+    if m:
+        return f"C. {m.group(1)}"
+    return os.path.splitext(base)[0]
 
 
 def sample_from_query(query_file: str) -> str:

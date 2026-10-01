@@ -284,3 +284,12 @@ def test_source_parses_on_oldest_supported_python():
             except SyntaxError as exc:
                 problems.append(f"{os.path.basename(path)} on {version[0]}.{version[1]}: {exc}")
     assert not problems, "; ".join(problems)
+
+
+def test_species_from_any_reference_name():
+    """A reference named for its organism should be recognised even if not in the built-in list."""
+    from campypump.species import species_from_reference
+    assert species_from_reference("refs/Clanienae_NCTC13004.fasta") == "C. lanienae"
+    assert species_from_reference("refs/C.hepaticus_HV10.fna") == "C. hepaticus"
+    assert species_from_reference("refs/Ccoli_RM4661.fasta") == "C. coli"
+    assert species_from_reference("refs/weird_name.fasta") == "weird_name"
