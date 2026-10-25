@@ -56,10 +56,19 @@ COLUMN_GUIDE = [
     ("operon_atypical_for_label", "yes = the cme operon does not match the labelled species. This is NOT a species call: it means either a database error or complete introgression of the operon. Use species_by_ANI for the species"),
     ("cmeR_identity_WT_11168_pct", "% identity of cmeR to NCTC 11168"),
     ("cmeR_identity_RE_PA001_pct", "% identity of cmeR to PA001"),
+    ("cmeR_identity_CcWT_RM4661_pct", "% identity of cmeR to C. coli RM4661 (CP007181.1), the native C. coli wildtype reference"),
+    ("cmeR_closest_reference", "Which reference allele of cmeR this gene matches best, with its class"),
+    ("cmeR_closest_identity_pct", "% identity of cmeR to that closest reference"),
     ("cmeA_identity_WT_11168_pct", "% identity of cmeA to NCTC 11168"),
     ("cmeA_identity_RE_PA001_pct", "% identity of cmeA to PA001"),
+    ("cmeA_identity_CcWT_RM4661_pct", "% identity of cmeA to C. coli RM4661 (CP007181.1), the native C. coli wildtype reference"),
+    ("cmeA_closest_reference", "Which reference allele of cmeA this gene matches best, with its class"),
+    ("cmeA_closest_identity_pct", "% identity of cmeA to that closest reference"),
     ("cmeC_identity_WT_11168_pct", "% identity of cmeC to NCTC 11168"),
     ("cmeC_identity_RE_PA001_pct", "% identity of cmeC to PA001"),
+    ("cmeC_identity_CcWT_RM4661_pct", "% identity of cmeC to C. coli RM4661 (CP007181.1), the native C. coli wildtype reference"),
+    ("cmeC_closest_reference", "Which reference allele of cmeC this gene matches best, with its class"),
+    ("cmeC_closest_identity_pct", "% identity of cmeC to that closest reference"),
     ("promoter_length_bp", "Length of the cmeR-cmeA intergenic (promoter) region"),
     ("CmeR_binding_site_seq", "Sequence aligned to the 16-bp CmeR-binding inverted repeat of 11168 (TGTAATAAAAATTACA)"),
     ("CmeR_binding_site_as_11168", "yes = identical to the 11168 inverted repeat; no = variant"),
@@ -104,14 +113,7 @@ def _worker(args):
 
 def cmd_run(a):
     check_blast()
-    genomes = []
-    for g in a.genomes:
-        if os.path.isdir(g):
-            genomes += sorted(f for f in glob.glob(os.path.join(g, "*")) if f.endswith(FASTA_EXTS))
-        else:
-            genomes.append(g)
-    if not genomes:
-        sys.exit("No genome FASTA files given.")
+    genomes = _collect_genomes(a.genomes)
     p = Params(re_min=a.re_min, wt_max_re=a.wt_max_re, window=a.window, step=a.step,
                mosaic_min_frac=a.mosaic_frac)
     jobs = [(g, a.refs, p) for g in genomes]
@@ -125,6 +127,7 @@ def cmd_run(a):
         for r in rows:
             r["species"] = a.species
     n_flagged = add_species_signal(rows)
+    n_ani_flagged = _add_species_call(a, genomes, rows)
     extra = sorted({k for r in rows for k in r if not k.startswith("_")} - set(FIRST_COLS) - {"warnings"})
     cols = FIRST_COLS + extra + ["warnings"]
     with open(a.output, "w", newline="") as fh:
@@ -157,11 +160,78 @@ def cmd_run(a):
     if n_flagged:
         print(f"{n_flagged} genomes: the cmeR/cmeA/cmeC signal disagrees with --species "
               f"(species_check_operon = CHECK) — confirm with rMLST", file=sys.stderr)
+    if n_ani_flagged:
+        print(f"{n_ani_flagged} genomes: the whole-genome species call disagrees with the "
+              f"label (species_check_ANI = CHECK) — use species_by_ANI", file=sys.stderr)
     counts = {}
     for r in rows:
         counts[r.get("cmeB_type_final", r["cmeB_type"])] = counts.get(r.get("cmeB_type_final", r["cmeB_type"]), 0) + 1
     print(f"{len(rows)} genomes -> {a.output}  " + "  ".join(f"{k}: {v}" for k, v in sorted(counts.items())),
           file=sys.stderr)
+
+
+
+
+def _collect_genomes(paths):
+    """FASTA files from the paths given; a directory is searched at every depth.
+
+    Collections are routinely laid out one directory per species or per isolate
+    (`genomes/ccoli/id-48.fasta`). Searching only the top level meant pointing at the
+    collection root silently found nothing, so the search walks the tree.
+    """
+    genomes, searched = [], []
+    for g in paths:
+        if os.path.isdir(g):
+            found = sorted(os.path.join(root, f)
+                           for root, _dirs, files in os.walk(g)
+                           for f in files if f.endswith(FASTA_EXTS))
+            searched.append((g, len(found)))
+            genomes += found
+        elif os.path.exists(g):
+            genomes.append(g)
+        else:
+            sys.exit(f"No such file or directory: {g}")
+    for d, n in searched:
+        print(f"{n} FASTA files under {d}", file=sys.stderr)
+    if not genomes:
+        where = ", ".join(d for d, _ in searched) or ", ".join(paths)
+        sys.exit(f"No genome FASTA files found in {where} "
+                 f"(looked at every depth for {', '.join(FASTA_EXTS)})")
+    return genomes
+
+
+def _add_species_call(a, genomes, rows):
+    """Whole-genome species call for `run`. Returns the number of label disagreements.
+
+    The operon crosses between species, so it cannot define the species; ANI against four
+    reference genomes can. skani is run here rather than left to the user, because a user
+    who skips it is the user most likely to be working from a mislabelled record.
+    """
+    if getattr(a, "no_ani", False):
+        return 0
+    from .species import add_ani_columns, run_skani, skani_available, SKANI_MISSING_HINT
+    table = getattr(a, "ani", None)
+    if not table:
+        if not skani_available():
+            print(SKANI_MISSING_HINT, file=sys.stderr)
+            return 0
+        table = os.path.splitext(a.output)[0] + "_species_ani.tsv"
+        try:
+            run_skani(genomes, table, threads=a.threads)
+        except (OSError, RuntimeError) as exc:
+            # a species call is worth having, but not at the cost of losing the typing
+            print(f"skani did not run, so no species call was made: {exc}", file=sys.stderr)
+            return 0
+    try:
+        missing, flagged = add_ani_columns(rows, table)
+    except (OSError, KeyError) as exc:
+        print(f"could not read the ANI table {table}: {exc}", file=sys.stderr)
+        return 0
+    if missing:
+        print(f"{missing} genomes had no ANI result; their species columns are empty",
+              file=sys.stderr)
+    print(f"species call from whole-genome ANI -> {table}", file=sys.stderr)
+    return flagged
 
 
 def _read_ids(path, column):
@@ -400,6 +470,10 @@ def main(argv=None):
     r.add_argument("--alleles", help="write extracted cmeB alleles to this FASTA")
     r.add_argument("-t", "--threads", type=int, default=1)
     r.add_argument("--species", default="", help="label written to a 'species' column, e.g. 'C. coli'")
+    r.add_argument("--ani", metavar="TSV",
+                   help="use this skani table for the species call instead of running skani")
+    r.add_argument("--no-ani", action="store_true",
+                   help="skip the whole-genome species call entirely")
     r.add_argument("--segment-plots", metavar="DIR",
                    help="write SVG segment plots for mosaic/ambiguous/divergent/mixed alleles to DIR")
     r.add_argument("--plot-all", action="store_true", help="with --segment-plots: plot every genome")

@@ -45,7 +45,7 @@ expression or phenotype.
 | Biopython | ≥ 1.80 (1.88 in development) | FASTA parsing, translation, pairwise alignment (`Bio.Align.PairwiseAligner`) |
 | BLAST+ | ≥ 2.10 (2.12.0 in development) | locating operon genes (`blastn`) |
 | bigsdb-downloader | 1.0.6 | OAuth-authenticated PubMLST API access (private records) |
-| skani | 0.3.2 | whole-genome ANI for the species call (run separately; campypump reads its table) |
+| skani | >=0.2 | whole-genome ANI for the species call; campypump runs it against the four bundled reference genomes |
 | MAFFT / IQ-TREE | 7.526 / 3.1.3 | alignment and phylogeny (run separately; campypump prepares the input and draws the tree) |
 | pandas + openpyxl | optional | reading Excel id lists |
 

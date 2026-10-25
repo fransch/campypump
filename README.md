@@ -56,7 +56,7 @@ recipe is accepted this becomes `conda install -c conda-forge -c bioconda campyp
 |---|---|
 | `pandas`, `openpyxl` | reading isolate id lists from Excel (`--ids file.xlsx`) |
 | `bigsdb-downloader` | PubMLST records that are not publicly released |
-| `skani` | whole-genome ANI species check |
+| `skani` | whole-genome ANI species check; campypump runs it for you |
 | `mafft`, `iqtree` | allele alignment and phylogeny |
 
 None are required for typing.
@@ -139,6 +139,8 @@ campypump run assemblies/ -t 8 -o results.tsv
 | `-o, --output` | `campypump_results.tsv` | results table |
 | `-t, --threads` | 1 | genomes typed in parallel |
 | `--species` | — | label written to a `species` column, e.g. `"C. coli"` |
+| `--ani` | — | use this skani table instead of running skani |
+| `--no-ani` | off | skip the whole-genome species call |
 | `--alleles FILE` | — | write the extracted cmeB sequences (needed for diversity figures and trees) |
 | `--segment-plots DIR` | — | SVG identity profiles for mosaic, divergent and mixed alleles |
 | `--plot-all` | off | with `--segment-plots`, plot every genome |
@@ -292,9 +294,15 @@ and *C. coli* DH161 carries a 99.4 % *C. jejuni*-like cmeR. Use whole-genome ANI
 ### Species check by whole-genome ANI
 
 ```bash
+# nothing to set up: campypump ships the four reference genomes and runs skani itself
+campypump run assemblies/ -t 8 -o results.tsv
+
+# skani not installed? install it and the species columns appear:
 micromamba install -c conda-forge -c bioconda skani -y
-mkdir species_refs          # one reference genome per species, named for the organism
-skani dist -q assemblies/*.fasta -r species_refs/*.fasta -t 8 -o species_ani.tsv
+
+# a big collection, typed in batches: make the table once, reuse it
+skani dist --ql queries.txt --rl refs.txt -t 8 -o species_ani.tsv
+campypump run assemblies/ --ani species_ani.tsv -o results.tsv
 campypump annotate results.tsv --ani species_ani.tsv -o annotated.csv
 ```
 
