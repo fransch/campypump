@@ -11,13 +11,23 @@ Input is the table written by:
 
 Reference file names supply the species, so name them for the organism
 (`Ccoli_RM4661.fasta`, `C.jejuni_NCTC11168.fasta`, `Cupsaliensis_RM3940.fasta`, ...).
+
+Since 0.4.0 campypump ships those four genomes and runs skani itself, so `campypump run`
+gives a species call without a separate step. `run_skani` below is that call; everything
+after it is unchanged, so a table produced by hand still works with `annotate --ani`.
 """
 from __future__ import annotations
 
 import csv
+import glob
+import gzip
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
+from importlib import resources
 
 ANI_SPECIES_MIN = 95.0        # conventional species boundary
 ANI_MARGIN_MIN = 1.0          # best hit must beat the runner-up by this much
@@ -137,3 +147,86 @@ def print_summary(rows: list[dict], out=sys.stderr) -> None:
         print(f"    {r.get('sample', '')}  labelled {r.get('species', '?')}  "
               f"-> {r.get('species_by_ANI', '?')} (ANI {r.get('ANI_pct', '?')}%, "
               f"aligned {r.get('ANI_align_fraction_pct', '?')}%)", file=out)
+
+
+# --------------------------------------------------------------------------- #
+# running skani
+# --------------------------------------------------------------------------- #
+
+SPECIES_REF_ENV = "CAMPYPUMP_SPECIES_REFS"
+SKANI_MISSING_HINT = (
+    "skani was not found on PATH, so no whole-genome species call was made.\n"
+    "    install it:   conda install -c bioconda skani\n"
+    "    or skip it:   --no-ani\n"
+    "    or supply a table you made yourself:   --ani species_ani.tsv"
+)
+
+
+def skani_available() -> bool:
+    return shutil.which("skani") is not None
+
+
+def bundled_species_refs() -> str:
+    """Directory holding the four species reference genomes, as plain FASTA.
+
+    They ship gzipped inside the package and are unpacked once into a cache directory,
+    so skani is always handed plain files and nothing depends on which input formats a
+    given skani build accepts. Set CAMPYPUMP_SPECIES_REFS to use your own directory
+    instead; file names supply the species, so keep the naming convention.
+    """
+    override = os.environ.get(SPECIES_REF_ENV)
+    if override:
+        return override
+    src = resources.files("campypump").joinpath("data/species")
+    cache = os.path.join(os.environ.get("XDG_CACHE_HOME")
+                         or os.path.join(os.path.expanduser("~"), ".cache"),
+                         "campypump", "species_refs")
+    os.makedirs(cache, exist_ok=True)
+    for entry in src.iterdir():
+        if not entry.name.endswith(".fasta.gz"):
+            continue
+        out = os.path.join(cache, entry.name[:-3])
+        if os.path.exists(out) and os.path.getsize(out) > 0:
+            continue
+        # write to a temporary name first: two campypump runs may start at once, and a
+        # half-written reference is worse than none
+        fd, tmp = tempfile.mkstemp(dir=cache, suffix=".part")
+        os.close(fd)
+        with entry.open("rb") as raw, gzip.open(raw, "rb") as fin, open(tmp, "wb") as fout:
+            shutil.copyfileobj(fin, fout)
+        os.replace(tmp, out)
+    return cache
+
+
+def species_reference_files(refs_dir: str | None = None) -> list[str]:
+    d = refs_dir or bundled_species_refs()
+    return sorted(f for ext in ("*.fasta", "*.fa", "*.fna")
+                  for f in glob.glob(os.path.join(d, ext)))
+
+
+def run_skani(genomes: list[str], out_path: str, threads: int = 1,
+              refs_dir: str | None = None) -> str:
+    """Run `skani dist` of these genomes against the species references.
+
+    Query and reference paths go in list files rather than on the command line: a run of
+    several thousand genomes would otherwise overflow the shell's argument limit.
+    """
+    refs = species_reference_files(refs_dir)
+    if not refs:
+        raise FileNotFoundError(
+            f"no species reference genomes in {refs_dir or bundled_species_refs()}")
+    work = tempfile.mkdtemp(prefix="campypump_skani_")
+    try:
+        ql, rl = os.path.join(work, "query.txt"), os.path.join(work, "ref.txt")
+        for path, items in ((ql, genomes), (rl, refs)):
+            with open(path, "w") as fh:
+                fh.write("\n".join(os.path.abspath(i) for i in items) + "\n")
+        cmd = ["skani", "dist", "--ql", ql, "--rl", rl,
+               "-t", str(max(1, threads)), "-o", out_path]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            raise RuntimeError("skani failed (" + " ".join(cmd) + "):\n"
+                               + (res.stderr or res.stdout).strip())
+        return out_path
+    finally:
+        shutil.rmtree(work, ignore_errors=True)

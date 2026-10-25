@@ -34,8 +34,11 @@ CORE = [
     "cmeB_closest_reference", "cmeB_closest_identity_pct",
     "cmeB_RE_like_segments_pct", "cmeB_WT_like_segments_pct",
     "cmeR_identity_WT_11168_pct", "cmeR_identity_RE_PA001_pct",
+    "cmeR_identity_CcWT_RM4661_pct", "cmeR_closest_reference",
     "cmeA_identity_WT_11168_pct", "cmeA_identity_RE_PA001_pct",
+    "cmeA_identity_CcWT_RM4661_pct", "cmeA_closest_reference",
     "cmeC_identity_WT_11168_pct", "cmeC_identity_RE_PA001_pct",
+    "cmeC_identity_CcWT_RM4661_pct", "cmeC_closest_reference",
     "CmeR_binding_site_seq", "CmeR_binding_site_as_11168", "promoter_length_bp",
     "cmeB_length_bp", "warnings",
 ]

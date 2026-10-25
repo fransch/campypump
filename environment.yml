@@ -4,6 +4,7 @@ dependencies:
   - python>=3.9
   - biopython>=1.80
   - blast>=2.10
+  - skani>=0.2
   - pandas
   - openpyxl
   - pytest

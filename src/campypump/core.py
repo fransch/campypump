@@ -37,6 +37,10 @@ IR_11168 = "TGTAATAAAAATTACA"
 
 PRIMARY_WT = "NCTC11168"
 PRIMARY_RE = "PA001"
+# native C. coli wildtype yardstick for cmeR, cmeA and cmeC (0.3.0). One named strain, so the
+# reported value is stable across panel versions; other C. coli references stay role "panel"
+# and feed the closest-match lookup without producing a second column to choose between.
+PRIMARY_CC_WT = "RM4661-CP007181"
 # published RE-cmeABC source: C. coli DH161, GenBank KT778508.1 (Yao et al. 2016).
 # Cooper et al. 2025 define RE-cmeB as >90% nucleotide identity to DH161 cmeB.
 PUBLISHED_RE = "DH161-KT778508"
@@ -410,17 +414,45 @@ def classify_genome(genome: str, refs: list[Ref], p: Params) -> dict:
         cmeB_aligned_identity_WT_pct=round(aligned_identity(wt_ref.seq, b.seq), 3),
     )
 
-    # other operon genes: identity to the 11168 and PA001 versions
+    # identity to each extra cmeB reference, written here while the cmeB `ids` are in scope
+    # rather than at the end of the function, where a later loop could shadow them
+    for r in cmeB_refs:
+        row[panel_column(r)] = round(ids[r.label], 3)
+
+    # other operon genes: identity to every reference of that gene, and the closest match.
+    # Before 0.3.0 these were scored only against NCTC 11168 and PA001, both C. jejuni, so a
+    # C. coli gene could only be reported as its distance from the C. jejuni version. The panel
+    # now carries a native C. coli wildtype set, so each gene is also measured against a
+    # reference of its own species and the closest reference is named.
     for gene in ("cmeR", "cmeA", "cmeC"):
         h = hits.get(gene)
-        col_wt, col_re = f"{gene}_identity_WT_11168_pct", f"{gene}_identity_RE_PA001_pct"
+        gene_refs = [r for r in refs if r.gene == gene]
+        col_wt = f"{gene}_identity_WT_11168_pct"
+        col_re = f"{gene}_identity_RE_PA001_pct"
+        col_cc = f"{gene}_identity_CcWT_RM4661_pct"
+        col_near, col_near_pct = f"{gene}_closest_reference", f"{gene}_closest_identity_pct"
         if h is None:
-            row[col_wt] = row[col_re] = ""
+            row[col_wt] = row[col_re] = row[col_cc] = row[col_near] = row[col_near_pct] = ""
             flags.append(f"{gene}_not_found")
             continue
-        for r in refs:
-            if r.gene == gene and r.role == "primary":
-                row[col_re if r.name == PRIMARY_RE else col_wt] = round(pct_identity(r.seq, h.seq)[0], 3)
+
+        # NB: named gids, not ids -- `ids` holds the cmeB identities used elsewhere in this
+        # function, and shadowing it here broke the cmeB panel columns in 0.3.0.
+        gids = {r.label: pct_identity(r.seq, h.seq)[0] for r in gene_refs}
+
+        # the two historical columns, now selected by reference name rather than by
+        # "PA001 or else", which silently overwrote 11168 once a third primary existed
+        named = {PRIMARY_WT: col_wt, PRIMARY_RE: col_re, PRIMARY_CC_WT: col_cc}
+        for col in named.values():
+            row[col] = ""
+        for r in gene_refs:
+            if r.name in named:
+                row[named[r.name]] = round(gids[r.label], 3)
+
+        nearest_gene = max(gene_refs, key=lambda r: gids[r.label])
+        row[col_near] = f"{nearest_gene.name} ({nearest_gene.cls.replace('_', ' ')})"
+        row[col_near_pct] = round(gids[nearest_gene.label], 3)
+
         flags += [f"{gene}_{f}" for f in h.flags]
 
     # promoter / CmeR-binding inverted repeat
@@ -433,8 +465,6 @@ def classify_genome(genome: str, refs: list[Ref], p: Params) -> dict:
 
     row.update(cmeB_length_bp=len(b.seq), cmeB_contig=b.contig, cmeB_start=b.start,
                cmeB_end=b.end, cmeB_strand=b.strand)
-    for r in cmeB_refs:
-        row[panel_column(r)] = round(ids[r.label], 3)
     row["warnings"] = "; ".join(_warn(f) for f in flags)
     row["_cmeB_seq"] = b.seq
     row["_windows"] = windows

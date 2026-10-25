@@ -20,7 +20,7 @@ authors:
     affiliation: "University of Virginia, Charlottesville, VA, USA"
 repository-code: "https://github.com/fransch/campypump"
 license: MIT
-version: 0.2.3
+version: 0.4.1
 keywords:
   - Campylobacter
   - antimicrobial resistance

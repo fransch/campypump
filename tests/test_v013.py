@@ -293,3 +293,100 @@ def test_species_from_any_reference_name():
     assert species_from_reference("refs/C.hepaticus_HV10.fna") == "C. hepaticus"
     assert species_from_reference("refs/Ccoli_RM4661.fasta") == "C. coli"
     assert species_from_reference("refs/weird_name.fasta") == "weird_name"
+
+
+# ---------------------------------------------------------------- 0.3.0
+def test_panel_has_native_ccoli_flanking_references():
+    """cmeR, cmeA and cmeC each have a native C. coli wildtype primary reference."""
+    from campypump.core import load_refs, PRIMARY_CC_WT
+    refs = load_refs()
+    for gene in ("cmeR", "cmeA", "cmeC"):
+        primaries = [r for r in refs if r.gene == gene and r.role == "primary"]
+        names = {r.name for r in primaries}
+        assert PRIMARY_CC_WT in names, f"{gene} has no native C. coli primary"
+        assert len(primaries) == 3, f"{gene} should have exactly 3 primaries, got {len(primaries)}"
+        assert sum(r.cls == "Cc_WT" for r in primaries) == 1, \
+            f"{gene} must have exactly one native C. coli primary, or the column is ambiguous"
+
+
+def test_cmeB_panel_unchanged_in_030():
+    """cmeB keeps the 0.2.3 panel: the call and every cmeB value must be reproducible."""
+    from campypump.core import load_refs
+    refs = [r for r in load_refs() if r.gene == "cmeB"]
+    assert len(refs) == 9
+    assert {r.name for r in refs} == {
+        "NCTC11168", "EF0003911-007703", "CAM013653-067612", "PA001",
+        "CAM015192-073790", "DH161-KT778508", "CAA03417-009068",
+        "CAA03009-008347", "CAA03704-009522"}
+    assert sum(r.role == "primary" for r in refs) == 2
+
+
+def test_each_flanking_gene_has_one_named_column_per_role():
+    """No two primary references of a gene share a class, so no column is ambiguous."""
+    from campypump.core import load_refs
+    refs = load_refs()
+    for gene in ("cmeR", "cmeA", "cmeC"):
+        classes = [r.cls for r in refs if r.gene == gene and r.role == "primary"]
+        assert len(classes) == len(set(classes)), f"{gene} has two primaries of the same class"
+
+
+def test_native_ccoli_reference_is_not_cjejuni_derived():
+    """Guards against repeating the DH161 mistake: the native C. coli reference must be
+    closer to another C. coli allele than to the C. jejuni reference."""
+    from campypump.core import load_refs, pct_identity, PRIMARY_CC_WT, PRIMARY_WT
+    refs = load_refs()
+    for gene in ("cmeR", "cmeA", "cmeC"):
+        g = [r for r in refs if r.gene == gene]
+        native = next(r for r in g if r.name == PRIMARY_CC_WT)
+        cj = next(r for r in g if r.name == PRIMARY_WT)
+        other_cc = [r for r in g if r.cls == "Cc_WT" and r.name != PRIMARY_CC_WT]
+        assert other_cc, f"{gene}: need a second C. coli allele to test against"
+        to_cc = max(pct_identity(r.seq, native.seq)[0] for r in other_cc)
+        to_cj = pct_identity(cj.seq, native.seq)[0]
+        assert to_cc > to_cj, (
+            f"{gene}: native reference is closer to C. jejuni ({to_cj:.1f}%) "
+            f"than to another C. coli ({to_cc:.1f}%)")
+
+
+def test_classify_genome_does_not_shadow_the_cmeB_identities():
+    """0.3.0 regression: the flanking-gene loop bound its own `ids`, which shadowed the cmeB
+    identities and made the cmeB panel columns raise KeyError. `ids` must be assigned once."""
+    import ast, inspect
+    from campypump import core
+    tree = ast.parse(inspect.getsource(core))
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "classify_genome")
+    def names(target):
+        if isinstance(target, ast.Name):
+            yield target.id
+        elif isinstance(target, (ast.Tuple, ast.List)):
+            for el in target.elts:
+                yield from names(el)
+
+    assigned = [nm for n in ast.walk(fn) if isinstance(n, ast.Assign)
+                for t in n.targets for nm in names(t)]
+    assert assigned.count("ids") == 1, (
+        f"`ids` is assigned {assigned.count('ids')} times in classify_genome; a second "
+        f"binding shadows the cmeB identities that panel_column() depends on")
+
+
+def test_flanking_gene_references_are_not_mislabelled_by_origin():
+    """Every reference used for the cmeR/cmeA/cmeC closest-match call must have a class that
+    matches the origin of its sequence. DH161 is a C. coli strain whose operon is C. jejuni-
+    derived, so its flanking genes were labelled Cc_RE while being C. jejuni-like; they are
+    excluded from the panel for that reason. This fails if they are ever put back."""
+    from campypump.core import load_refs, pct_identity, PRIMARY_CC_WT, PRIMARY_WT
+    refs = load_refs()
+    for gene in ("cmeR", "cmeA", "cmeC"):
+        g = [r for r in refs if r.gene == gene]
+        native = next(r for r in g if r.name == PRIMARY_CC_WT)
+        cj = next(r for r in g if r.name == PRIMARY_WT)
+        for r in g:
+            if not r.cls.startswith("Cc"):
+                continue
+            to_cc = pct_identity(native.seq, r.seq)[0]
+            to_cj = pct_identity(cj.seq, r.seq)[0]
+            assert to_cc > to_cj, (
+                f"{gene}/{r.name} is labelled {r.cls} but is closer to C. jejuni "
+                f"({to_cj:.1f}%) than to C. coli ({to_cc:.1f}%); it would corrupt "
+                f"{gene}_closest_reference")

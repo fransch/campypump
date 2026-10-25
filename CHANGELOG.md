@@ -1,5 +1,96 @@
 # Changelog
 
+## 0.4.1
+
+- **A directory argument to `run` is now searched at every depth.** Collections are
+  routinely laid out one directory per species or per isolate
+  (`genomes/ccoli/id-48.fasta`), and pointing `run` at the collection root found nothing
+  and said only "No genome FASTA files given". It now walks the tree, reports how many
+  files it found under each directory given, and names the directory and the extensions
+  it searched when it finds none.
+- A path that does not exist is reported as such instead of being passed to BLAST.
+
+## 0.4.0
+
+- **The four species reference genomes now ship with campypump**, gzipped in
+  `data/species/` (1.9 MB): *C. jejuni* NCTC 11168 (AL111168.1), *C. coli* RM4661
+  (CP007181.1), *C. lari* RM2100 (CP000932.1) and *C. upsaliensis* RM3940 (CP053849.1).
+  They are unpacked once into a cache directory, so skani is always handed plain FASTA.
+- **`campypump run` makes the species call itself.** It runs `skani dist` against those
+  genomes and writes `species_by_ANI`, `ANI_pct`, `ANI_margin`,
+  `ANI_align_fraction_pct`, `ANI_call_quality` and `species_check_ANI` straight into the
+  results table. Until now the user had to find four genomes and run a second tool, which
+  is exactly the user most likely to be working from a mislabelled record.
+- Query and reference paths are passed to skani in list files (`--ql`, `--rl`), not on the
+  command line: a few thousand genomes would otherwise overflow the shell's argument limit.
+- `--ani TSV` on `run` reuses a table you made yourself; `--no-ani` skips the call. The
+  existing `annotate --ani` is unchanged, so the HPC workflow still works as before.
+- **Without skani the run still types everything.** It prints the install command, leaves
+  the species columns empty and carries on. skani is a run dependency of the conda package,
+  so this fallback is for pip installs.
+- `CAMPYPUMP_SPECIES_REFS` points the call at your own directory of reference genomes; file
+  names supply the species, so keep the naming convention.
+- No change to the reference panel, the thresholds, the mosaic scan or any cmeB, cmeR, cmeA
+  or cmeC value. 0.3.2 results remain reproducible.
+
+## 0.3.2
+
+- **DH161's cmeR, cmeA and cmeC are removed from the panel.** DH161 is a *C. coli* strain whose
+  cmeABC operon is partly *C. jejuni*-derived. Its cmeR and cmeA are *C. jejuni*-like (75.2 % and
+  89.2 % to the native *C. coli* reference, against 99.4 % and 98.6 % to NCTC 11168) while
+  carrying the class `Cc_RE`. Those two records were inert before 0.3.0, but 0.3.0 made every
+  reference eligible for `<gene>_closest_reference`, so a genome with a *C. jejuni*-type flanking
+  gene could be reported as matching a *C. coli* reference. In the Peru collection that affected
+  93 *C. coli* and 138 *C. jejuni* at cmeR, and 120 and 195 at cmeA.
+- DH161's cmeC is **not** mislabelled: at 97.8 % to RM4661 against 85.1 % to NCTC 11168 it is
+  genuinely native *C. coli*, which is consistent with the introgressed block in that strain
+  spanning cmeR to cmeB and stopping before cmeC. It is removed only for consistency and because
+  RM4661 and CAA03009-008347 already cover native *C. coli* cmeC.
+- A test now fails if any reference whose class says *C. coli* is closer to the *C. jejuni*
+  reference than to the native *C. coli* one, for any of the three flanking genes.
+- DH161's **cmeB is unchanged** and still provides the published > 90 % RE definition.
+- cmeR, cmeA and cmeC now have four references each: NCTC 11168, PA001, RM4661 and
+  CAA03009-008347.
+
+## 0.3.1
+
+- **Fixes a crash in 0.3.0.** The new per-gene loop for cmeR, cmeA and cmeC bound a local
+  variable `ids`, which shadowed the cmeB identities computed earlier in the same function. The
+  `panel_<class>_<strain>_pct` columns are written from those cmeB identities, so every genome
+  raised `KeyError` and 0.3.0 could not type anything. The flanking-gene loop now uses `gids`,
+  the cmeB panel columns are written while the cmeB identities are still in scope rather than at
+  the end of the function, and a test asserts `ids` is bound exactly once in `classify_genome`.
+  0.3.0 should not be used.
+
+## 0.3.0
+
+- **cmeR, cmeA and cmeC are now scored against a native *C. coli* reference.** Until now these
+  three genes were compared only with NCTC 11168 and PA001, both *C. jejuni*, so a *C. coli* gene
+  could only be reported as its distance from the *C. jejuni* version and its absolute value was
+  not interpretable. The panel gains *C. coli* RM4661 (CP007181.1) as the native wildtype
+  yardstick, giving a new column per gene: `cmeR_identity_CcWT_RM4661_pct` and the same for cmeA
+  and cmeC. RM4661 was chosen because it is a published complete *C. coli* genome and is already
+  the *C. coli* reference used for the ANI species call.
+- **Each of the three genes now reports its closest reference**, `<gene>_closest_reference` and
+  `<gene>_closest_identity_pct`, mirroring what cmeB has always done. This answers "which allele
+  is this gene actually like" rather than only "how far is it from a *C. jejuni* gene".
+- **Fixed: a third primary reference silently overwrote the NCTC 11168 column.** The per-gene
+  scoring selected its output column with "PA001, or else 11168", so any primary reference that
+  was not PA001 was written into the 11168 column. Columns are now selected by reference name.
+  This had no effect before 0.3.0, when only two primary references existed per gene.
+- The flanking genes of *C. coli* CAA03009-008347 are included as `panel` references. They feed
+  the closest-match lookup but produce no column, so there is never a second *C. coli* identity
+  to choose between.
+- **cmeB is unchanged**: same nine references, same thresholds, same RE/wildtype logic. Every
+  cmeB value produced by earlier versions is reproduced exactly. RM4661's cmeB was evaluated and
+  deliberately left out: it is the closest wildtype reference for 39 of 215 *C. coli* wildtype
+  alleles and improves the genome-weighted best match by 0.4 points, but it would also shift the
+  wildtype baseline of the mosaic window scan, which the ST-12298 block finding rests on. Adding
+  it belongs in a change where that scan is re-run and the block re-checked.
+- DH161's cmeR, cmeA and cmeC, carried unused since 0.1.4, are now scored. Note that DH161 is a
+  *C. coli* strain whose operon is *C. jejuni*-derived, so its flanking genes are not a native
+  *C. coli* comparator.
+
 ## 0.2.3
 
 - **Species names are read from any reference file named for its organism**, not only the handful

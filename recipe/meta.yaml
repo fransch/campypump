@@ -1,7 +1,7 @@
 # Draft bioconda recipe. Before submitting: push a tagged release (v0.1.0) to GitHub,
 # fill in the URL and sha256 of the release tarball, then open a PR to bioconda-recipes.
 {% set name = "campypump" %}
-{% set version = "0.2.3" %}
+{% set version = "0.4.1" %}
 
 package:
   name: {{ name }}
@@ -29,11 +29,13 @@ requirements:
     - python >=3.9
     - biopython >=1.80
     - blast >=2.10
+    - skani >=0.2
 
 test:
   commands:
     - campypump --version
     - campypump run --help
+    - skani -h
 
 about:
   home: https://github.com/fransch/campypump
