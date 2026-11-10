@@ -4,10 +4,10 @@
 **Purpose of this document:** to let a genomic scientist or bioinformatician check, step by step,
 that the analysis does what we intend, and to flag design choices and limitations for review.
 **Companion documents:** `docs/codebook_annotated_csv.md` (every column of the analysis file),
-the results summary (not yet public) (findings), `docs/tree_howto.md` (phylogeny), `INSTRUCTIONS.md` (how to run it).
+`docs/hpc_quickstart.md` (install and run) and `docs/tree_howto.md` (phylogeny).
 **Project context:** RE-cmeABC typing of all Peru *C. coli* (n = 1,513) and *C. jejuni* (n = 2,223)
 genomes in PubMLST, replacing a manual Geneious Prime workflow. Analysis run on the UArizona HPC
-(Puma), September 2026. Biological findings are summarised separately in the results summary (not yet public).
+(Puma), September 2026.
 
 All code excerpts below are copied from the package source (`src/campypump/`). Line-level details
 can be checked against the repository.
@@ -127,13 +127,13 @@ summary of counts per type is printed to the log.
 | `<outdir>/failed_ids.txt` | `id <tab> reason` for every id not downloaded in the last run (e.g. `HTTP 404 (not public / not available)`) |
 | `<outdir>/id-<id>.fasta.part` | temporary file during download; renamed on success, never left behind on success |
 
-**`hpc/download_private.slurm`** (private genomes, BIGSdb_downloader)
+**`hpc/pubmlst_download.slurm`** (public records, and private ones via BIGSdb_downloader)
 
 | File | Content |
 |---|---|
 | `genomes/<species>/id-<id>.fasta` | contigs of private records |
 | `genomes/<species>/private_failed_ids.txt` | ids that failed in the last run (empty when all succeeded) |
-| `download_private_<jobid>.log` | progress every 100 genomes, one line per failure, `DONE` summary per species |
+| `pubmlst_fetch_<jobid>.log` | progress every 100 genomes, one line per failure, `DONE` summary per species |
 
 **`campypump metadata`**
 
@@ -163,9 +163,9 @@ summary of counts per type is printed to the log.
 
 | File | Content |
 |---|---|
-| `<output>.csv` | results merged with metadata, ANI species calls and exclusion flags. `--columns core` (default) writes the 39 columns analyses use; `--columns full` writes all 82. Documented column by column in `docs/codebook_annotated_csv.md` |
+| `<output>.csv` | results merged with metadata, ANI species calls and exclusion flags. `--columns core` (default) writes the 49 columns analyses use; `--columns full` writes every column the run produced (95 in the Peru run). Documented column by column in `docs/codebook_annotated_csv.md` |
 
-**HPC job scripts** (`hpc/`, project folder `/xdisk/cooperma/fschiaffino/campypump_project`)
+**HPC job scripts** (`hpc/`, run from the project folder holding `genomes/` and `results/`)
 
 | File | Written by | Content |
 |---|---|---|
@@ -630,7 +630,8 @@ separated at this locus. Section 9.7 reports how each performed.
 
 `annotate --exclude <file>` marks listed genomes `use_for_prevalence = no` with an `exclude_reason`;
 nothing is deleted, so an exclusion is visible and reversible. `annotate --columns` writes either
-the 39 columns analyses use (`core`, the default) or all 82 (`full`); every column is documented in
+the 49 columns analyses use (`core`, the default) or every column the run produced (`full`, 95 in the
+Peru run); every column is documented in
 `docs/codebook_annotated_csv.md`.
 
 ### 5.12 Figures
@@ -682,7 +683,7 @@ PUBMLST = "https://rest.pubmlst.org/db/pubmlst_campylobacter_isolates/isolates/{
 In the Peru collection, all isolates with PubMLST id ≤ 151958 were public (1,600 genomes). The
 remaining 2,136 are private and returned 404 to anonymous requests ("Isolate … does not exist").
 
-### 6.2 Private assemblies (`hpc/download_private.slurm`)
+### 6.2 Private assemblies (`hpc/pubmlst_download.slurm`)
 
 Private records are downloaded with BIGSdb_downloader, using a personal OAuth token tied to the
 PI's PubMLST account (created once with `--setup`). It uses the same `contigs_fasta` route and the
@@ -870,7 +871,7 @@ against a 0.99 target), which is expected where many alleles differ by one or tw
 The RE clade is recovered with 100/100 support and contains no wildtype allele, so the 95 % identity
 cut-off used for classification corresponds to a clade rather than an arbitrary threshold. Within
 it, the *C. coli* alleles are not monophyletic: they form 16 separate clusters, which is the minimum
-number of independent acquisitions. Findings are in the results summary (not yet public).
+number of independent acquisitions.
 
 ## 10. Known limitations and suggested reviewer checks
 
@@ -918,14 +919,14 @@ number of independent acquisitions. Findings are in the results summary (not yet
 # environment (once)
 micromamba create -n campypump -c conda-forge -c bioconda python=3.11 biopython blast pip pytest pandas openpyxl
 micromamba activate campypump
-pip install ./campypump        # campypump 0.5.0
+pip install ./campypump        # campypump 0.5.1
 pip install bigsdb-downloader  # private PubMLST access
 pytest -q campypump/tests      # 12 passed
 
-# genomes: public, then private (ids in the case-study id lists (not yet public), )
+# genomes: public, then private (id lists are one PubMLST isolate id per line)
 campypump fetch --ids peru_ccoli_ids.txt --outdir genomes/ccoli/
 campypump fetch --ids peru_cjejuni_ids.txt --outdir genomes/cjejuni/
-sbatch hpc/download_private.slurm          # remaining private records via BIGSdb_downloader
+sbatch hpc/pubmlst_download.slurm          # remaining private records via BIGSdb_downloader
 
 # typing
 campypump run genomes/ccoli/   -t 8 --species "C. coli"   -o campypump_ccoli.tsv \
@@ -968,11 +969,11 @@ campypump treeplot tree/cmeB_tree.treefile --outgroup OUT_C_lari_RM2100 \
 ```
 
 The Slurm scripts in `hpc/` run these steps on UArizona Puma (`campypump_job.slurm`,
-`download_private.slurm`, `metadata_job.slurm`). Results reported in Section 9 were generated with
+`pubmlst_download.slurm`, `metadata_job.slurm`); set `--account` and the module names for your own
+cluster. Results reported in Section 9 were generated with
 campypump 0.5.0. The cmeB classification logic has been unchanged since 0.1.2; later versions added
 the partial-gene, divergent, plotting, metadata, annotation, ANI and phylogenetics features, and
-0.5.0 added the structural classification of the CmeR operator described in Section 5.9. All of it
-runs in one step with `the case-study run script (not yet public)`.
+0.5.0 added the structural classification of the CmeR operator described in Section 5.9.
 
 ---
 

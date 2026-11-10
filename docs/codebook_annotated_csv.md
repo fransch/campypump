@@ -2,9 +2,9 @@
 
 **File:** the annotated results table written by `campypump annotate` (core column set, 49 columns).
 **Rows:** one per genome, 3,736 in the Peru collection.
-**Produced by:** campypump 0.5.0. Method: `campypump_technical_description.md`.
-**Full column set:** `--columns full` adds 46 further columns (per-panel identities, locus
-coordinates, accessions, full provenance). Everything omitted here is also in
+**Produced by:** campypump 0.5.0 and later. Method: `docs/technical_description.md`.
+**Full column set:** `--columns full` adds the remaining columns the run produced (46 in the Peru
+run: per-panel identities, locus coordinates, accessions, full provenance). Everything omitted here is also in
 `results/campypump_all_peru.tsv` and `results/pubmlst_metadata.tsv`.
 
 Counts and ranges below are from the September 2026 run of the Peru collection, as a sanity check

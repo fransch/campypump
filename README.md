@@ -189,8 +189,8 @@ campypump annotate results.tsv --metadata pubmlst_metadata.tsv \
 ```
 
 Merges PubMLST metadata, a whole-genome ANI species call and an exclusion list, and flags duplicate
-records by isolate name. `--columns core` (default) writes the 39 columns analyses need; `--columns
-full` writes all 82. Every column is documented in
+records by isolate name. `--columns core` (default) writes the 49 columns analyses need; `--columns
+full` writes every column the run produced (95 in the Peru run, with PubMLST metadata and ANI). Every column is documented in
 [`docs/codebook_annotated_csv.md`](docs/codebook_annotated_csv.md).
 
 ### `campypump alleles` — prepare tree input

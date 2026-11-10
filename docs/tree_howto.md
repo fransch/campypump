@@ -37,7 +37,7 @@ iqtree -h 2>&1 | grep -E "^\s+(-B|-alrt|--prefix|-o|-T)\b"
 reference. Download the genome and let campypump pull cmeB out of it:
 
 ```bash
-cd /xdisk/cooperma/fschiaffino/campypump_project
+cd "$PROJECT"        # the folder holding genomes/ and results/
 mkdir -p tree
 curl -s "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=nuccore&id=CP000932.1&rettype=fasta&retmode=text" \
     -o tree/C_lari_RM2100_CP000932.fasta
@@ -117,7 +117,7 @@ the model chosen and is what you cite in the methods.
 As a batch job for larger runs:
 
 ```bash
-sbatch --account=cooperma --partition=standard --nodes=1 --ntasks=8 --time=02:00:00 \
+sbatch --account=YOUR_SLURM_ACCOUNT --partition=standard --nodes=1 --ntasks=8 --time=02:00:00 \
     --wrap "module load micromamba && micromamba activate campypump && cd $PWD && \
     iqtree -s cmeB_alleles.aln.fasta -m MFP -B 1000 -alrt 1000 -T 8 --prefix cmeB_tree -o OUT_C_lari_RM2100"
 ```
