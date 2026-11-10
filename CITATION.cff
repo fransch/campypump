@@ -2,28 +2,63 @@ cff-version: 1.2.0
 title: "campypump: classify RE-cmeABC efflux pump alleles in Campylobacter genomes"
 message: "If you use this software, please cite it."
 type: software
+abstract: >-
+  campypump classifies the cmeB gene of the Campylobacter cmeABC efflux operon as RE-cmeB, the
+  resistance-enhancing variant that raises fluoroquinolone and macrolide MICs, or as wildtype,
+  directly from genome assemblies. It replaces a manual BLAST-and-align workflow and reproduces its
+  identity values exactly. Alongside the cmeB call it reports identity to a panel of reference
+  alleles, the operon context (cmeR, the CmeR operator, cmeA and cmeC), structural classification of
+  the CmeR operator, quality-control flags, optional species assignment by whole-genome ANI, and
+  figures and allele phylogenies.
 authors:
   - family-names: Schiaffino
     given-names: Francesca
+    orcid: "https://orcid.org/0000-0002-5796-5116"
     affiliation: "Universidad Peruana Cayetano Heredia, Lima, Peru"
-  - family-names: Parker
-    given-names: Craig T.
-    affiliation: "University of Arizona, Tucson, AZ, USA"
+  - family-names: "Paredes Olortegui"
+    given-names: Maribel
+    orcid: "https://orcid.org/0000-0001-9943-8157"
+    affiliation: "Asociacion Benefica Prisma, Iquitos, Loreto, Peru"
+  - family-names: "Garcia Bardales"
+    given-names: "Paul F."
+    orcid: "https://orcid.org/0000-0002-2050-8878"
+    affiliation: "Asociacion Benefica Prisma, Iquitos, Loreto, Peru"
+  - family-names: "Peñataro Yori"
+    given-names: Pablo
+    orcid: "https://orcid.org/0000-0003-3406-5809"
+    affiliation: "University of Virginia, Charlottesville, VA, USA"
+  - family-names: Goforth
+    given-names: Madison
+    orcid: "https://orcid.org/0000-0002-7612-4064"
+    affiliation: "University of Oxford, Oxford, UK"
+  - family-names: Mourkas
+    given-names: Evangelos
+    orcid: "https://orcid.org/0000-0002-7411-4743"
+    affiliation: "Uppsala University, Uppsala, Sweden"
   - family-names: Cooper
-    given-names: Kerry K.
+    given-names: "Kerry K."
+    orcid: "https://orcid.org/0000-0003-4541-1324"
     affiliation: "University of Arizona, Tucson, AZ, USA"
   - family-names: Pascoe
     given-names: Ben
+    orcid: "https://orcid.org/0000-0001-6376-5121"
     affiliation: "University of Oxford, Oxford, UK"
+  - family-names: Parker
+    given-names: "Craig T."
+    orcid: "https://orcid.org/0000-0002-7719-8882"
+    affiliation: "University of Arizona, Tucson, AZ, USA"
   - family-names: Kosek
-    given-names: Margaret N.
+    given-names: "Margaret N."
+    orcid: "https://orcid.org/0000-0001-6340-4852"
     affiliation: "University of Virginia, Charlottesville, VA, USA"
 repository-code: "https://github.com/fransch/campypump"
 license: MIT
 version: 0.5.1
+date-released: "2026-11-10"
 keywords:
   - Campylobacter
   - antimicrobial resistance
   - efflux pump
   - cmeABC
   - genomics
+  - bacterial genomics
