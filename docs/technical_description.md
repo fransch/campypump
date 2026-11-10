@@ -1,6 +1,6 @@
 # campypump: technical description for review
 
-**Tool:** campypump (*Campylobacter* efflux PUMP typer), version 0.1.19
+**Tool:** campypump (*Campylobacter* efflux PUMP typer), version 0.5.0
 **Purpose of this document:** to let a genomic scientist or bioinformatician check, step by step,
 that the analysis does what we intend, and to flag design choices and limitations for review.
 **Companion documents:** `docs/codebook_annotated_csv.md` (every column of the analysis file),
@@ -90,7 +90,7 @@ from PubMLST are named `id-<PubMLST id>.fasta`, and the id is parsed from the fi
 | `cmeB_RE_like_segments_pct`, `cmeB_WT_like_segments_pct` | window scan summary |
 | `cmeB_aligned_identity_RE_pct`, `..._WT_pct` | identity over the part of the gene present (partial genes) |
 | `cmeR/cmeA/cmeC_identity_WT_11168_pct`, `..._RE_PA001_pct` | per-gene identities |
-| `promoter_length_bp`, `CmeR_binding_site_seq`, `CmeR_binding_site_as_11168` | promoter analysis |
+| `promoter_length_bp`, `CmeR_binding_site_seq`, `CmeR_IR_halfsite_bp`, `CmeR_IR_spacer_bp`, `CmeR_IR_length_bp`, `CmeR_IR_class` | promoter and operator analysis |
 | `cmeB_contig`, `cmeB_start`, `cmeB_end`, `cmeB_strand`, `cmeB_length_bp` | locus coordinates |
 | `warnings` | plain-language QC flags |
 
@@ -575,7 +575,19 @@ Review points:
   IR sequences were observed among 2,203 genomes with an IR call; the ten most frequent account
   for 98.3 %. No IR was reported for 20 *C. jejuni* and 54 *C. coli* genomes.
 - **C. coli.** *C. coli* promoters diverge from 11168, so the mapped IR in *C. coli* is less
-  reliable. `CmeR_binding_site_as_11168` only tests identity to the 11168 IR, not function.
+  reliable. `CmeR_binding_site_as_11168` only tests identity to the 11168 IR, not function, and is
+  deprecated from 0.5.0.
+
+Since 0.5.0 the window is classified by its structure rather than by identity to 11168. CmeR binds
+as a dimer, one subunit to each half-site of an inverted repeat either side of a spacer, so the
+classifier takes the largest k for which the first and last k bases of the window are reverse
+complements (minimum 6), reports the spacer as the remainder, and assigns one of intact,
+half_site_changed, spacer_changed or half_site_and_spacer_changed. This matters because NCTC 11168
+and *C. jejuni* 81-176 differ by one base in this window and are both intact — 11168 a 6-bp repeat
+with a 4-bp spacer, 81-176 a 7-bp repeat with a 2-bp spacer — and the 81-176 form is carried by
+1,504 genomes against 246 for the 11168 form, so a rule anchored on 11168 calls the commoner
+unaltered operator altered. The four columns are computed from the window campypump already
+reported, so no genome needs retyping. Thirteen regression tests cover the classifier.
 
 ### 5.10 Species assignment (whole-genome ANI)
 
@@ -906,7 +918,7 @@ number of independent acquisitions. Findings are in the results summary (not yet
 # environment (once)
 micromamba create -n campypump -c conda-forge -c bioconda python=3.11 biopython blast pip pytest pandas openpyxl
 micromamba activate campypump
-pip install ./campypump        # campypump 0.1.3
+pip install ./campypump        # campypump 0.5.0
 pip install bigsdb-downloader  # private PubMLST access
 pytest -q campypump/tests      # 12 passed
 
@@ -957,8 +969,9 @@ campypump treeplot tree/cmeB_tree.treefile --outgroup OUT_C_lari_RM2100 \
 
 The Slurm scripts in `hpc/` run these steps on UArizona Puma (`campypump_job.slurm`,
 `download_private.slurm`, `metadata_job.slurm`). Results reported in Section 9 were generated with
-campypump 0.1.19. The classification logic has been unchanged since 0.1.2; later versions added the
-partial-gene, divergent, plotting, metadata, annotation, ANI and phylogenetics features. All of it
+campypump 0.5.0. The cmeB classification logic has been unchanged since 0.1.2; later versions added
+the partial-gene, divergent, plotting, metadata, annotation, ANI and phylogenetics features, and
+0.5.0 added the structural classification of the CmeR operator described in Section 5.9. All of it
 runs in one step with `the case-study run script (not yet public)`.
 
 ---

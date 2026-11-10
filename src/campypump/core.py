@@ -34,6 +34,12 @@ STARTS = {"ATG", "GTG", "TTG"}
 
 # 16-bp inverted repeat in the NCTC 11168 cmeR-cmeA intergenic region
 IR_11168 = "TGTAATAAAAATTACA"
+# CmeR binds as a dimer to an inverted repeat: two half-sites that are reverse
+# complements of each other, either side of a spacer. NCTC 11168 (6-bp half-sites,
+# 4-bp spacer) and 81-176 (7-bp half-sites, 2-bp spacer) are both intact operators,
+# so the operator is described by its structure rather than by identity to either.
+IR_MIN_HALFSITE = 6
+IR_CANONICAL_LEN = 16
 
 PRIMARY_WT = "NCTC11168"
 PRIMARY_RE = "PA001"
@@ -279,6 +285,40 @@ def promoter_ir(contig_seq: Seq, cmeR: GeneHit | None, cmeA: GeneHit, promoter_r
     return region, ir_seq
 
 
+def classify_ir(ir: str) -> tuple[int, str, int, str]:
+    """Describe a CmeR operator by its structure.
+
+    Returns (half-site length, spacer length or "" when the half-sites are broken,
+    total length, class). The half-site length is the longest n for which the first
+    n bases and the last n bases of the window are reverse complements. A spacer is
+    only defined when the half-sites hold, since otherwise the boundary between
+    half-site and spacer is arbitrary.
+
+    >>> classify_ir("TGTAATAAATATTACA")[-1]        # 81-176: 7-bp half-sites
+    'intact'
+    >>> classify_ir("TGTAATAAAAATTACA")[-1]        # NCTC 11168: 6-bp half-sites
+    'intact'
+    >>> classify_ir("TGTAATAATATTACA")[-1]         # one base out of the spacer
+    'spacer_changed'
+    >>> classify_ir("TGTAATAAATATTATA")[-1]        # right half-site substituted
+    'half_site_changed'
+    """
+    ir = (ir or "").strip().upper()
+    if len(ir) < 12:
+        return 0, "", len(ir), "unclassified"
+    k = 0
+    for n in range(IR_MIN_HALFSITE, len(ir) // 2 + 1):
+        if str(Seq(ir[-n:]).reverse_complement()) == ir[:n]:
+            k = n
+    half_ok = k >= IR_MIN_HALFSITE
+    full = len(ir) == IR_CANONICAL_LEN
+    cls = ("intact" if half_ok and full else
+           "spacer_changed" if half_ok else
+           "half_site_changed" if full else
+           "half_site_and_spacer_changed")
+    return k, (len(ir) - 2 * k) if half_ok else "", len(ir), cls
+
+
 # plain-language descriptions for QC / analysis flags
 WARNING_TEXT = {
     "contig_edge_5prime": "gene starts at contig edge (5' end missing)",
@@ -460,8 +500,11 @@ def classify_genome(genome: str, refs: list[Ref], p: Params) -> dict:
     prom_ref = next((r.seq for r in refs if r.gene == "promoter"), None)
     if a is not None and prom_ref:
         region, ir = promoter_ir(contigs[a.contig], hits.get("cmeR"), a, prom_ref)
+        half, spacer, ir_len, ir_cls = classify_ir(ir)
         row.update(promoter_length_bp=len(region), CmeR_binding_site_seq=ir,
-                   CmeR_binding_site_as_11168="yes" if ir == IR_11168 else "no")
+                   CmeR_binding_site_as_11168="yes" if ir == IR_11168 else "no",
+                   CmeR_IR_halfsite_bp=half, CmeR_IR_spacer_bp=spacer,
+                   CmeR_IR_length_bp=ir_len, CmeR_IR_class=ir_cls)
 
     row.update(cmeB_length_bp=len(b.seq), cmeB_contig=b.contig, cmeB_start=b.start,
                cmeB_end=b.end, cmeB_strand=b.strand)

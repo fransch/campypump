@@ -67,7 +67,7 @@ None are required for typing.
 bash verify_install.sh
 ```
 
-This prints software versions, runs the 25 tests, types the eight bundled reference genomes and
+This prints software versions, runs the 60 tests, types the eight bundled reference genomes and
 compares the output with expected values — three of them identity values from the manual workflow
 campypump replaces. It ends with `ALL CHECKS PASSED` or names the mismatch. Run it before using
 campypump on real data.
@@ -249,6 +249,20 @@ publicly released.
 Also reported: identity to the published DH161 RE allele and whether the genome meets that
 definition, identities for cmeR, cmeA and cmeC, the promoter length and CmeR-binding site sequence,
 the locus coordinates, and identity to each panel allele.
+
+The CmeR operator is described by its structure rather than by identity to one strain:
+
+| Column | Example | Meaning |
+|---|---|---|
+| `CmeR_IR_halfsite_bp` | `7` | longest n for which the first and last n bases of the window are reverse complements; 0 when the half-sites are broken |
+| `CmeR_IR_spacer_bp` | `2` | bases between the half-sites; blank when the half-sites are broken and the boundary is arbitrary |
+| `CmeR_IR_length_bp` | `16` | total length of the window |
+| `CmeR_IR_class` | `intact` | intact, half_site_changed, spacer_changed, half_site_and_spacer_changed, unclassified |
+
+NCTC 11168 and *C. jejuni* 81-176 differ by one base here and are both intact — 11168 a 6-bp
+repeat with a 4-bp spacer, 81-176 a 7-bp repeat with a 2-bp spacer — so classifying against
+either strain alone makes the other look altered. `CmeR_binding_site_as_11168` is still written
+for compatibility but is deprecated; use `CmeR_IR_class`.
 
 Example, from the bundled reference genomes:
 

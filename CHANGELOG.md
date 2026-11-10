@@ -1,3 +1,29 @@
+## 0.5.0
+
+The CmeR operator is now described by its structure instead of by identity to one
+reference strain.
+
+CmeR binds as a dimer, one subunit to each half-site of an inverted repeat, either side
+of a spacer that must hold the two half-sites the right distance apart. NCTC 11168 and
+C. jejuni 81-176 differ by a single base in this window: 11168 forms a perfect 6-bp
+inverted repeat with a 4-bp spacer, 81-176 a perfect 7-bp repeat with a 2-bp spacer.
+Both are intact operators, but classifying against either one alone makes the other look
+altered, and 11168 carries the rarer of the two forms.
+
+Added, all computed from the window campypump already reported, so no genome needs
+retyping:
+
+* `CmeR_IR_halfsite_bp` - longest n for which the first and last n bases of the window
+  are reverse complements
+* `CmeR_IR_spacer_bp` - bases between the half-sites; blank when the half-sites are
+  broken and the boundary is arbitrary
+* `CmeR_IR_length_bp` - total length of the window
+* `CmeR_IR_class` - intact / half_site_changed / spacer_changed /
+  half_site_and_spacer_changed / unclassified
+
+`CmeR_binding_site_as_11168` is kept so nothing downstream breaks, but is deprecated in
+the codebook. Thirteen regression tests cover the new classifier.
+
 # Changelog
 
 ## 0.4.1

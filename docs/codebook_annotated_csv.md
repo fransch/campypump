@@ -1,9 +1,9 @@
 # Codebook: `campypump_all_peru_annotated.csv`
 
-**File:** the annotated results table written by `campypump annotate` (core column set, 39 columns).
+**File:** the annotated results table written by `campypump annotate` (core column set, 49 columns).
 **Rows:** one per genome, 3,736 in the Peru collection.
-**Produced by:** campypump 0.1.13. Method: `campypump_technical_description.md`.
-**Full column set:** `--columns full` adds 43 further columns (per-panel identities, locus
+**Produced by:** campypump 0.5.0. Method: `campypump_technical_description.md`.
+**Full column set:** `--columns full` adds 46 further columns (per-panel identities, locus
 coordinates, accessions, full provenance). Everything omitted here is also in
 `results/campypump_all_peru.tsv` and `results/pubmlst_metadata.tsv`.
 
@@ -122,7 +122,18 @@ evidence of whole-operon introgression.
 |---|---|---|---|
 | `promoter_length_bp` | integer | 0–663 | Length of the cmeR–cmeA intergenic region recovered. Around 95 bp is typical; 0 means it could not be extracted |
 | `CmeR_binding_site_seq` | text | 31 distinct sequences | The sequence aligned to the 16 bp inverted repeat of NCTC 11168 (`TGTAATAAAAATTACA`) |
-| `CmeR_binding_site_as_11168` | yes/no | yes 249; no 3,487 | Identical to the 11168 repeat |
+| `CmeR_binding_site_as_11168` | yes/no | yes 249; no 3,487 | **Deprecated.** Identical to the 11168 repeat. Kept so nothing downstream breaks; use `CmeR_IR_class` |
+| `CmeR_IR_halfsite_bp` | integer | 0–8 | Longest n for which the first and last n bases of the window are reverse complements. 0 means the half-sites are broken |
+| `CmeR_IR_spacer_bp` | integer | 0–6, blank | Bases between the half-sites. Blank when the half-sites are broken, because the boundary is then arbitrary |
+| `CmeR_IR_length_bp` | integer | 12–19 | Total length of the recovered window; 16 in an unaltered operator |
+| `CmeR_IR_class` | text | intact 1,750; half_site_changed 1,223; spacer_changed 448; half_site_and_spacer_changed 198 | Structural state of the operator |
+
+CmeR binds as a dimer, one subunit to each half-site of an inverted repeat, either side of a
+spacer that holds the two half-sites the right distance apart. The class is therefore read from
+the structure of the window — the longest perfect inverted repeat and the gap between its arms —
+rather than from identity to one reference strain. NCTC 11168 and *C. jejuni* 81-176 differ by a
+single base here and are both intact, and the 81-176 form is the commoner of the two, so anchoring
+on 11168 alone would call the majority wildtype form altered.
 
 Descriptive only: campypump reports the sequence and does not test function. The mapping is less
 reliable in *C. coli*, whose promoters diverge from the 11168 reference. In *C. jejuni* the repeat
