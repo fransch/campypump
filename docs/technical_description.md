@@ -1,6 +1,6 @@
 # campypump: technical description for review
 
-**Tool:** campypump (*Campylobacter* efflux PUMP typer), version 0.5.0
+**Tool:** campypump (*Campylobacter* efflux PUMP typer), version 0.5.1
 **Purpose of this document:** to let a genomic scientist or bioinformatician check, step by step,
 that the analysis does what we intend, and to flag design choices and limitations for review.
 **Companion documents:** `docs/codebook_annotated_csv.md` (every column of the analysis file),
@@ -41,7 +41,7 @@ expression or phenotype.
 
 | Component | Version tested | Role |
 |---|---|---|
-| Python | ≥ 3.9 (3.11 on HPC; 3.12 in development) | runtime |
+| Python | ≥ 3.10 (3.11 on HPC; 3.12 in development) | runtime |
 | Biopython | ≥ 1.80 (1.88 in development) | FASTA parsing, translation, pairwise alignment (`Bio.Align.PairwiseAligner`) |
 | BLAST+ | ≥ 2.10 (2.12.0 in development) | locating operon genes (`blastn`) |
 | bigsdb-downloader | 1.0.6 | OAuth-authenticated PubMLST API access (private records) |
@@ -780,7 +780,7 @@ detected; a cgMLST distance check would catch those.
     single-genome histogram bin is still drawn
   - tree parsing, tip naming, ST annotation and the source/block layers of the tree figure
   - that no colour carries two meanings within a figure
-  - that every module parses under the Python 3.9 and 3.11 grammars, not only the interpreter used
+  - that every module parses under the Python 3.10 and 3.11 grammars, not only the interpreter used
     to develop (a nested same-quote f-string, legal only from 3.12, broke 0.1.18 on 3.11)
 
 ### 9.2 Synthetic tests (development)

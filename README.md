@@ -18,9 +18,9 @@ complete genes matched to within 0.01 percentage points.
 |---|---|
 | Input | genome assemblies (FASTA), one file per isolate |
 | Output | one row per genome: cmeB type, identity to reference alleles, operon context, promoter, QC flags |
-| Requires | Python ≥ 3.9, Biopython ≥ 1.80, BLAST+ ≥ 2.10 |
+| Requires | Python ≥ 3.10, Biopython ≥ 1.80, BLAST+ ≥ 2.10 |
 | Speed | ~1.7 CPU-seconds per genome (3,736 genomes in 13 minutes on 8 CPUs) |
-| Tested on | Python 3.9–3.12 |
+| Tested on | Python 3.10–3.12 |
 
 ---
 

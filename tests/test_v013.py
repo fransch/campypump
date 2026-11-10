@@ -266,7 +266,7 @@ def test_palette_has_no_duplicate_meanings():
 
 
 def test_source_parses_on_oldest_supported_python():
-    """pyproject claims Python >= 3.9, so every module must parse under that grammar.
+    """pyproject claims Python >= 3.10, so every module must parse under that grammar.
 
     Nested same-quote f-strings (f'...{d['k']}...') only became legal in 3.12; developing on 3.12
     hides them until an older interpreter refuses to import the package.
@@ -278,7 +278,7 @@ def test_source_parses_on_oldest_supported_python():
     problems = []
     for path in sorted(glob.glob(os.path.join(pkg, "*.py"))):
         src = open(path).read()
-        for version in ((3, 9), (3, 11)):
+        for version in ((3, 10), (3, 11)):
             try:
                 ast.parse(src, filename=path, feature_version=version)
             except SyntaxError as exc:

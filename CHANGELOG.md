@@ -1,3 +1,17 @@
+## 0.5.1
+
+Retires Python 3.9, which reached end of life in October 2025 and was dropped from the
+GitHub runner image, so the test matrix could no longer resolve it and every CI job
+failed before any test ran.
+
+* `requires-python` raised to `>=3.10`, with `environment.yml`, the conda recipe, the
+  README and the technical description brought into line
+* the grammar check in `tests/test_v013.py` now parses every module under the 3.10 and
+  3.11 grammars instead of 3.9 and 3.11, so the test matches the declared floor
+* CI matrix is 3.10, 3.11 and 3.12
+
+No change to typing, to the output columns or to any result.
+
 ## 0.5.0
 
 The CmeR operator is now described by its structure instead of by identity to one

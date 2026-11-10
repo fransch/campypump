@@ -12,9 +12,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # the package claims >= 3.9; 0.1.18 shipped syntax that only 3.12 accepted,
+        # the package claims >= 3.10; 0.1.18 shipped syntax that only 3.12 accepted,
         # so every supported version is tested on every push
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
